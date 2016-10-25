@@ -11,6 +11,7 @@ var examples = [
   'inception',
   'inline-node',
   'input',
+  'list',
   'macros',
   'nested'
 ]
@@ -80,6 +81,7 @@ function _example(name, legacy) {
   b.js(src+'app.js', {
     buble: legacy,
     commonjs: { include: ['/**/lodash/**'] },
+    external: [ 'substance' ],
     targets: [{
       useStrict: !legacy,
       dest: dist+'app.js',

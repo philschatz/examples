@@ -1,6 +1,6 @@
 import {
   ProseEditor, ProseEditorConfigurator, EditorSession,
-  ProseEditorPackage, HeadingMacro
+  ProseEditorPackage, ListPackage
 } from 'substance'
 
 /*
@@ -11,13 +11,36 @@ const fixture = function(tx) {
   tx.create({
     id: 'p1',
     type: 'paragraph',
-    content: "Type # followed by a space to create a heading!"
+    content: "This example demonstrates support for Lists."
   })
   body.show('p1')
+
+  tx.create({
+    id: 'li1',
+    type: 'list-item',
+    content: 'Item 1'
+  })
+  tx.create({
+    id: 'li2',
+    type: 'list-item',
+    content: 'Item 2'
+  })
+  tx.create({
+    id: 'li3',
+    type: 'list-item',
+    content: 'Item 3'
+  })
+  tx.create({
+    id: 'list1',
+    type: 'list',
+    items: ['li1', 'li2', 'li3']
+  })
+  body.show('list1')
+
   tx.create({
     id: 'p2',
     type: 'paragraph',
-    content: ""
+    content: "Fine."
   })
   body.show('p2')
 }
@@ -28,7 +51,7 @@ const fixture = function(tx) {
 
 let cfg = new ProseEditorConfigurator()
 cfg.import(ProseEditorPackage)
-cfg.addMacro(HeadingMacro)
+cfg.import(ListPackage)
 
 window.onload = function() {
   let doc = cfg.createArticle(fixture)
