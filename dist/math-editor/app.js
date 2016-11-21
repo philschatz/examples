@@ -344,7 +344,6 @@ class MathEditComponent extends substance.Component {
 
   dispose() {
     this.context.editorSession.off(this)
-    this.editor.destroy()
   }
 
   _saveAndCloseModal(source) {
@@ -426,16 +425,17 @@ let fixture = function(tx) {
     id: 'h1',
     type: 'heading',
     level: 1,
-    content: 'Embedding a 3rdParty MathEditor'
+    content: 'MathEditor Test Page'
   })
   body.show('h1')
   tx.create({
     id: 'intro',
     type: 'paragraph',
     content: [
-      'It is possible to use 3rd party components, a math editor for instance (which uses MathJax for rendering, MathQuill for WYSIWYG editing, and ACE for advanced text editing).',
-      'The editor us wrapped into a separate component which makes it independent from the main word-processor interface.',
-      'Here is some inline math that you should eventually be able to select and "upgrade" to real math: x=\\frac{-b\\pm \\sqrt{b^2-4ac}}{2a}',
+      'These things should work: editing a formula using MathQuill (need to click twice to open the editor), editing using the "Full-Source", deleting a formula by pressing the Delete key, Undoing a delete by pressing Ctrl+Z, copying/cutting just the selected math element (and then pasting), copying/cutting multiple lines of text with math and pasting.',
+      // 'It is possible to use 3rd party components, a math editor for instance (which uses MathJax for rendering, MathQuill for WYSIWYG editing, and ACE for advanced text editing).',
+      // 'The editor us wrapped into a separate component which makes it independent from the main word-processor interface.',
+      // 'Here is some inline math that you should eventually be able to select and "upgrade" to real math: x=\\frac{-b\\pm \\sqrt{b^2-4ac}}{2a}',
     ].join(" ")
   })
   body.show('intro')
