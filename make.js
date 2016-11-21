@@ -2,6 +2,7 @@ var b = require('substance-bundler');
 var fs = require('fs')
 
 var examples = [
+  'math-editor',
   'code-editor',
   'collab-writer',
   'focused',
