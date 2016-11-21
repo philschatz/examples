@@ -3,119 +3,9 @@ import {
   ProseEditorPackage, BlockNode, Tool, InsertNodeCommand
 } from 'substance'
 
-/*
-  Node definition
-*/
-class Math extends BlockNode {}
-
-Math.define({
-  type: 'math',
-  language: 'text/tex',
-  source: 'text'
-})
-
-
-class MathJaxRenderComponent extends Component {
-  render($$) {
-    let {node, language, source} = this.props
-
-    let el = $$('div').addClass('sc-math-render')
-    .append('Rendering ' + source)
-    .ref('renderedMathNode')
-    return el
-  }
-
-  // don't rerender because this would destroy MathJax
-  shouldRerender() {
-    return false;
-  }
-
-  didMount() {
-    let {node, language, source} = this.props
-    let nativeMathContainer = this.refs['renderedMathNode'].getNativeElement()
-
-    // HACK? so shouldRender is called
-    // this.el = this.refs['renderedMathNode']
-
-    // Mark node up so MathJax understands
-    if (language === 'text/tex') {
-      nativeMathContainer.innerHTML = '$$' + source + '$$'
-    } else {
-      throw new Error('BUG: No math language set!')
-    }
-
-    function cb() {
-      console.log('MathJaxDoneRendering')
-    }
-    MathJax.Hub.Queue(["Typeset", MathJax.Hub, nativeMathContainer, cb])
-
-    // let editor = ace.edit(this.refs.source.getNativeElement())
-    // // editor.setTheme("ace/theme/monokai");
-    // editor.setOptions({
-    //   maxLines: Infinity,
-    // });
-    // editor.$blockScrolling = Infinity;
-    // editor.getSession().setMode("ace/mode/" + node.language)
-    // // TODO: don't we need to dispose the editor?
-    // // For now we update the model only on blur
-    // // Option 1: updating on blur
-    // //   pro: one change for the whole code editing session
-    // //   con: very implicit, very late, hard to get selection right
-    // editor.on('blur', this._updateModelOnBlur.bind(this))
-    //
-    // editor.commands.addCommand({
-    //   name: 'escape',
-    //   bindKey: {win: 'Escape', mac: 'Escape'},
-    //   exec: function(editor) {
-    //     this.send('escape')
-    //     editor.blur()
-    //   }.bind(this),
-    //   readOnly: true // false if this command should not apply in readOnly mode
-    // });
-    //
-    // this.editor = editor
-    // editorSession.onRender('document', this._onModelChange, this, {
-    //   path: [node.id, 'source']
-    // })
-  }
-
-}
-
-
-class MathQuillComponent extends Component {
-  render($$) {
-    let {node, language, source} = this.props
-
-    let el = $$('span').addClass('sc-mathquill-input').append(source)
-    .ref('mathQuillInput')
-    return el
-  }
-
-  // don't rerender because this would destroy MathJax
-  shouldRerender() {
-    return false;
-  }
-
-  _updateLatex() {
-    console.log('MathField: ' + this._mathField.latex())
-    this.send('mathQuillUpdated', this._mathField.latex())
-  }
-
-  didMount() {
-    let {node, language, source} = this.props
-    let mathQuillInput = this.refs['mathQuillInput'].getNativeElement()
-
-    let MQ = MathQuill.getInterface(2) // for backcompat
-    this._mathField = MQ.MathField(mathQuillInput, {
-      spaceBehavesLikeTab: true, // configurable
-      handlers: {
-        edit: this._updateLatex.bind(this)
-      }
-    })
-  }
-
-}
-
+import MathBlock from './MathBlock'
+import MathJaxRenderComponent from './MathJaxRenderComponent'
+import MathQuillComponent from './MathQuillComponent'
 
 class AdvancedMathEditWithPreview extends Component {
   getInitialState() {
@@ -295,8 +185,8 @@ class InsertMathCommand extends InsertNodeCommand {
 let MathPackage = {
   name: 'math',
   configure: function(config) {
-    config.addNode(Math)
-    config.addComponent(Math.type, MathEditComponent)
+    config.addNode(MathBlock)
+    config.addComponent(MathBlock.type, MathEditComponent)
     config.addCommand('insert-math', InsertMathCommand)
     config.addTool('insert-math', Tool, {toolGroup: 'insert'})
     config.addIcon('insert-math', { 'fontawesome': 'fa-code' })
