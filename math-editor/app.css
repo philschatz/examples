@@ -17,3 +17,9 @@ body {
 
 .sc-math-editor .se-actions { padding-top: 20px; }
 .sc-math-editor .se-actions .sc-button { font-weight: bold; margin-right: 20px; display: inline-block; }
+
+
+.sc-math-editor .sc-ace-editor {
+  background: #efefef;
+  padding: 5px 10px;
+}
