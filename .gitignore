@@ -1,7 +1,10 @@
 # Logs
 logs
 *.log
-lib
+
+# Commented for gh-pages
+# lib
+
 _site
 
 # Commented for gh-pages
