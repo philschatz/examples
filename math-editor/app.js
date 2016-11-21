@@ -6,11 +6,20 @@ import {
 import MathBlock from './MathBlock'
 import MathJaxRenderComponent from './MathJaxRenderComponent'
 import MathQuillComponent from './MathQuillComponent'
+import AceComponent from './AceComponent'
 
 class AdvancedMathEditWithPreview extends Component {
+  constructor(...args) {
+    super(...args)
+    this.handleActions({
+      'aceUpdated': this._aceUpdated,
+    })
+  }
+
   getInitialState() {
     return {source: this.props.source}
   }
+
   render($$) {
     const {language} = this.props
     const source = this.state.source || this.props.source
@@ -19,22 +28,34 @@ class AdvancedMathEditWithPreview extends Component {
     .append('Enter Latex Source:')
     .append(
       // TODO: Use the ACE editor
-      $$('input')
-      .attr('value', source)
-      .on('blur', this._updateSource)
-      .on('keyup', this._updateSource)
-      .ref('sourceLatex')
+      // $$('input')
+      // .attr('value', source)
+      // .on('blur', this._updateSource)
+      // .on('keyup', this._updateSource)
+      // .ref('sourceLatex')
+      $$(AceComponent, {source, language}).ref('hack-to-not-rerender1')
     )
-    .append($$(MathJaxRenderComponent, {source, language}))
+    .append($$(MathJaxRenderComponent, {source, language}).ref('hack-to-not-rerender2'))
 
     return el
   }
 
-  _updateSource() {
-    const source = this.refs['sourceLatex'].getNativeElement().value
-    this.extendState({source})
-    this.send('mathAdvancedUpdated', source)
+  // _updateSource() {
+  //   const source = this.refs['sourceLatex'].getNativeElement().value
+  //   if (source !== this.state.source) {
+  //     this.extendState({source})
+  //     this.send('mathAdvancedUpdated', source)
+  //   }
+  // }
+
+  _aceUpdated(source) {
+    if (source !== this.state.source) {
+      this.extendState({source})
+      this.send('mathAdvancedUpdated', source)
+    }
   }
+
+
 }
 
 class MathEditModal extends Component {
@@ -52,15 +73,15 @@ class MathEditModal extends Component {
     let Button = this.getComponent('button')
     let el = $$('div')
     el.append($$('div'))
-    .append($$('div').append('Edit the math below (uses MathQuill):'))
+    .append($$('h2').append('Edit the math below (uses MathQuill):'))
     .append($$(MathQuillComponent, {source}))
     .append($$('hr'))
-    .append($$('div').append('Or, edit the latex directly'))
+    .append($$('h2').append('Or, edit the latex directly'))
     .append($$(AdvancedMathEditWithPreview, {language, source}))
 
     el.append(
       $$('div').addClass('se-actions').append(
-        $$(Button).append('Save').on('click', this._save),
+        $$(Button).addClass('se-save').append('Save').on('click', this._save),
         $$(Button).addClass('se-cancel').append('Cancel').on('click', this._cancel)
       )
     )
@@ -101,7 +122,7 @@ class MathEditComponent extends Component {
 
     let el = $$('div').addClass('sc-math-editor')
     el.append(
-      $$(MathJaxRenderComponent, {language, source})
+      $$(MathJaxRenderComponent, {language, source}).ref('hack-to-not-rerender3')
       .on('click', this._toggleEditor)
     )
 
@@ -203,16 +224,16 @@ let fixture = function(tx) {
     id: 'h1',
     type: 'heading',
     level: 1,
-    content: 'Embedding a 3rdParty CodeEditor'
+    content: 'Embedding a 3rdParty MathEditor'
   })
   body.show('h1')
   tx.create({
     id: 'intro',
     type: 'paragraph',
     content: [
-      'It is possible to use 3rd party components, a code editor for instance, such as ACE.',
-      'The editor us wrapped into an IsolatedNode which makes it independent from the main word-processor interface.',
-      'Here is some math: x=\\frac{-b\pm \sqrt{b^2-4ac}}{2a}',
+      'It is possible to use 3rd party components, a math editor for instance (which uses MathJax for rendering, MathQuill for WYSIWYG editing, and ACE for advanced text editing).',
+      'The editor us wrapped into a separate component which makes it independent from the main word-processor interface.',
+      'Here is some inline math that you should eventually be able to select and "upgrade" to real math: x=\\frac{-b\\pm \\sqrt{b^2-4ac}}{2a}',
     ].join(" ")
   })
   body.show('intro')
@@ -227,7 +248,7 @@ let fixture = function(tx) {
     id: 'p2',
     type: 'paragraph',
     content: [
-      "And here is another formula which does not work in MathQuill"
+      "And here is another formula (which does not work in MathQuill)"
     ].join(" ")
   })
   body.show('p2')
@@ -236,23 +257,21 @@ let fixture = function(tx) {
     id: 's2',
     type: 'math',
     language: 'text/tex',
-    source: `
-
-    \\mathbf{A} =
-     \\begin{bmatrix}
-     a_{11} & a_{12} & \\cdots & a_{1n} \\\\
-     a_{21} & a_{22} & \\cdots & a_{2n} \\\\
-     \\vdots & \\vdots & \\ddots & \\vdots \\\\
-     a_{m1} & a_{m2} & \\cdots & a_{mn}
-     \\end{bmatrix} =
-    \\left( \\begin{array}{rrrr}
-     a_{11} & a_{12} & \\cdots & a_{1n} \\\\
-     a_{21} & a_{22} & \\cdots & a_{2n} \\\\
-     \\vdots & \\vdots & \\ddots & \\vdots \\\\
-     a_{m1} & a_{m2} & \\cdots & a_{mn}
-     \\end{array} \\right) =\\left(a_{ij}\\right) \\in \\mathbb{R}^{m \\times n}.
-
-    `,
+    source:
+`\\mathbf{A} =
+\\begin{bmatrix}
+a_{11} & a_{12} & \\cdots & a_{1n} \\\\
+a_{21} & a_{22} & \\cdots & a_{2n} \\\\
+\\vdots & \\vdots & \\ddots & \\vdots \\\\
+a_{m1} & a_{m2} & \\cdots & a_{mn}
+\\end{bmatrix} =
+\\left( \\begin{array}{rrrr}
+a_{11} & a_{12} & \\cdots & a_{1n} \\\\
+a_{21} & a_{22} & \\cdots & a_{2n} \\\\
+\\vdots & \\vdots & \\ddots & \\vdots \\\\
+a_{m1} & a_{m2} & \\cdots & a_{mn}
+\\end{array} \\right) =\\left(a_{ij}\\right) \\in \\mathbb{R}^{m \\times n}.
+`,
   });
   body.show('s2')
 
@@ -260,7 +279,7 @@ let fixture = function(tx) {
     id: 'the-end',
     type: 'paragraph',
     content: [
-      "That's it."
+      "TODO: Support delete key when selected, Make modal pretty, Support MathML, Add/edit/upgrade-by-selecting inline math, Formula cheat-sheet. That's it!"
     ].join(" ")
   })
   body.show('the-end')

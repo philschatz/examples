@@ -15,29 +15,22 @@ export default class MathJaxRenderComponent extends Component {
   }
 
   // don't rerender because this would destroy MathJax
-  shouldRerender() {
-    return false;
+  shouldRerender(newProps, newState) {
+    return this._isRenderNeeded(this.props, newProps)
   }
 
+  _isRenderNeeded(oldProps, newProps) {
+    const {language, source} = oldProps
+    return language !== newProps.language || source.trim() !== newProps.source.trim()
+  }
+
+  didUpdate(oldProps, oldState) {
+    if (this._isRenderNeeded(oldProps, this.props)) {
+      this._renderMathJax()
+    }
+  }
   didMount() {
-    let {node, language, source} = this.props
-    let nativeMathContainer = this.refs['renderedMathNode'].getNativeElement()
-
-    // HACK? so shouldRender is called
-    // this.el = this.refs['renderedMathNode']
-
-    // Mark node up so MathJax understands
-    if (language === 'text/tex') {
-      nativeMathContainer.innerHTML = '$$' + source + '$$'
-    } else {
-      throw new Error('BUG: No math language set!')
-    }
-
-    function cb() {
-      console.log('MathJaxDoneRendering')
-    }
-    MathJax.Hub.Queue(["Typeset", MathJax.Hub, nativeMathContainer, cb])
-
+    this._renderMathJax()
     // let editor = ace.edit(this.refs.source.getNativeElement())
     // // editor.setTheme("ace/theme/monokai");
     // editor.setOptions({
@@ -68,4 +61,23 @@ export default class MathJaxRenderComponent extends Component {
     // })
   }
 
+  _renderMathJax() {
+    let {node, language, source} = this.props
+    let nativeMathContainer = this.refs['renderedMathNode'].getNativeElement()
+
+    // HACK? so shouldRender is called
+    // this.el = this.refs['renderedMathNode']
+
+    // Mark node up so MathJax understands
+    if (language === 'text/tex') {
+      nativeMathContainer.innerHTML = '$$' + source + '$$'
+    } else {
+      throw new Error('BUG: No math language set!')
+    }
+
+    function cb() {
+      console.log('MathJaxDoneRendering')
+    }
+    MathJax.Hub.Queue(["Typeset", MathJax.Hub, nativeMathContainer, cb])
+  }
 }

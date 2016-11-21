@@ -16,4 +16,4 @@ body {
 }
 
 .sc-math-editor .se-actions { padding-top: 20px; }
-.sc-math-editor .se-actions .sc-button { margin-right: 20px; display: inline-block; }
+.sc-math-editor .se-actions .sc-button { font-weight: bold; margin-right: 20px; display: inline-block; }
