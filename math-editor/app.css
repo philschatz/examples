@@ -1,14 +1,19 @@
 @import '../common.css';
+@import '../mathquill/mathquill.css';
 
 body {
   overflow: hidden;
 }
 
 .sc-math-editor {
-  background: #efefef;
+  /*background: #efefef;*/
   padding: 5px 10px;
+  cursor: pointer;
 }
 
-.sc-math-editor:hover {
-  background: #cff;
+.sc-math-editor + .se-blocker:hover {
+  background-color: rgba(128, 255, 255, 0.5);
 }
+
+.sc-math-editor .se-actions { padding-top: 20px; }
+.sc-math-editor .se-actions .sc-button { margin-right: 20px; display: inline-block; }

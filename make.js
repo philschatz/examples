@@ -33,6 +33,8 @@ b.task('assets', function() {
   b.copy('node_modules/font-awesome', './dist/lib/font-awesome')
   b.copy('node_modules/ace-builds/src', './dist/lib/ace')
   b.copy('node_modules/substance/dist', './dist/lib/substance')
+  b.copy('node_modules/mathquill/build', './dist/mathquill')
+  b.copy('node_modules/jquery/dist', './dist/jquery')
   b.copy('./index.html', './dist/')
 })
 
