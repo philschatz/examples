@@ -1,6 +1,6 @@
 import {
   BasePackage, StrongPackage, EmphasisPackage, LinkPackage, ListPackage, Document,
-  ParagraphPackage, HeadingPackage
+  ParagraphPackage, HeadingPackage, ImagePackage
 } from 'substance'
 
 import BodyPackage from '../body/BodyPackage'
@@ -39,6 +39,7 @@ export default {
     // config.import(LinkPackage, {toolTarget: 'annotations'})
 
     config.import(ListPackage)
+    config.import(ImagePackage)
 
     // custom nodes
     config.import(BodyPackage)

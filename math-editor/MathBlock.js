@@ -7,8 +7,8 @@ class MathBlock extends BlockNode {}
 
 MathBlock.define({
   type: 'math',
-  language: 'text/tex',
-  source: 'text'
+  language: { type: 'string', default: 'text/tex' },
+  source: { type: 'string' },
 })
 
 
