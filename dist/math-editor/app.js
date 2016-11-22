@@ -210,6 +210,189 @@ class AceEditor extends substance.Component {
 
 AceEditor.fullWidth = true;
 
+var fixture = `
+<html>
+  <body>
+    <h1>MathEditor Test Page!!!</h1>
+    <p>
+      These things should work:
+    </p>
+    <ul>
+      <li>editing a formula using MathQuill (need to click twice to open the editor)</li>
+      <li>editing using the "Full-Source"</li>
+      <li>deleting a formula by pressing the Delete key</li>
+      <li>Undoing a delete by pressing Ctrl+Z</li>
+      <li>copying/cutting just the selected math element (and then pasting)</li>
+      <li>copying/cutting multiple lines of text with math and pasting</li>
+    </ul>
+    <div data-math="x=\\frac{-b\\pm \\sqrt{b^2-4ac}}{2a}"></div>
+    <p>And here is another formula (which does not work in MathQuill)</p>
+    <div data-math>
+\\mathbf{A} =
+\\begin{bmatrix}
+a_{11} & a_{12} & \\cdots & a_{1n} \\\\
+a_{21} & a_{22} & \\cdots & a_{2n} \\\\
+\\vdots & \\vdots & \\ddots & \\vdots \\\\
+a_{m1} & a_{m2} & \\cdots & a_{mn}
+\\end{bmatrix} =
+\\left( \\begin{array}{rrrr}
+a_{11} & a_{12} & \\cdots & a_{1n} \\\\
+a_{21} & a_{22} & \\cdots & a_{2n} \\\\
+\\vdots & \\vdots & \\ddots & \\vdots \\\\
+a_{m1} & a_{m2} & \\cdots & a_{mn}
+\\end{array} \\right) =\\left(a_{ij}\\right) \\in \\mathbb{R}^{m \\times n}.
+    </div>
+    <h1>TODO</h1>
+    <ol>
+      <li>Support delete key when selected</li>
+      <li>Make modal pretty</li>
+      <li>Support MathML</li>
+      <li>Add/edit/upgrade-by-selecting inline math</li>
+      <li>Formula cheat-sheet</li>
+    </ol>
+  </body>
+</html>
+`
+
+class Body extends substance.Container {}
+
+Body.define({
+  type: 'body'
+})
+
+var BodyConverter = {
+  type: 'body',
+  tagName: 'body',
+
+  import: function(el, node, converter) {
+    node.id = 'body'
+    node.nodes = el.children.map(function(child) {
+      var childNode = converter.convertElement(child)
+      return childNode.id
+    })
+  },
+
+  export: function(node, el, converter) {
+    el.append(converter.convertNodes(node.nodes))
+  }
+}
+
+class BodyComponent extends substance.Component {
+  render($$) {
+    let node = this.props.node;
+    let el = $$('div')
+      .addClass('sc-body')
+      .attr('data-id', this.props.node.id);
+
+    el.append(
+      $$(substance.ContainerEditor, {
+        disabled: this.props.disabled,
+        node: node,
+        commands: this.props.commands,
+        textTypes: this.props.textTypes
+      }).ref('body')
+    );
+    return el;
+  }
+}
+
+var BodyPackage = {
+  name: 'body',
+  configure: function(config) {
+    config.addNode(Body)
+    config.addComponent(Body.type, BodyComponent)
+    config.addConverter('html', BodyConverter)
+  }
+}
+
+/**
+  HTML importer for the SimpleArticle. We delegate the work to
+  BodyConverter.
+*/
+class SimpleHTMLImporter extends substance.HTMLImporter {
+  convertDocument(htmlEl) {
+    var bodyEl = htmlEl.find('body')
+    this.convertElement(bodyEl)
+  }
+}
+
+/**
+  Standard configuration for SimpleWriter
+
+  We define a schema (simple-article) import some core packages
+  from Substance, as well as custom node types.
+
+  An HTML importer is registered to be able to turn HTML markup
+  into a SimpleArticle instance.
+*/
+var SimpleWriterPackage = {
+  name: 'simple-writer',
+  configure: function (config) {
+    config.defineSchema({
+      name: 'simple-article',
+      ArticleClass: substance.Document,
+      defaultTextType: 'paragraph'
+    })
+
+    // Commented because these are already defined in ProseEditorPackage
+
+    // BasePackage provides core functionaliy, such as undo/redo
+    // and the SwitchTextTypeTool. However, you could import those
+    // functionalities individually if you need more control
+    // config.import(BasePackage)
+
+    // core nodes
+    // config.import(ParagraphPackage)
+    // config.import(HeadingPackage)
+    // config.import(StrongPackage, {toolTarget: 'annotations'})
+    // config.import(EmphasisPackage, {toolTarget: 'annotations'})
+    // config.import(LinkPackage, {toolTarget: 'annotations'})
+
+    config.import(substance.ListPackage)
+
+    // custom nodes
+    config.import(BodyPackage)
+    // config.import(MathPackage, {toolTarget: 'annotations'})
+
+    // Override Importer/Exporter
+    config.addImporter('html', SimpleHTMLImporter)
+  }
+}
+
+var MathConverter = {
+
+  type: 'math',
+  tagName: 'span',
+
+  /**
+    Custom matcher, needed as matching by tagName is not sufficient
+  */
+  matchElement: function(el) {
+    return el.is('div[data-math]')
+  },
+
+  /**
+    Extract math string from the data-math attribute
+  */
+  import: function(el, node) {
+    // node.content = el.attr('data-math') || el.textContent
+    node.source = el.attr('data-math') || el.textContent
+    node.language = el.attr('data-lang') || 'text/tex'
+  },
+
+  /**
+    Serialize math node to span with data-type and data-math
+    attributes.
+  */
+  export: function(node, el) {
+    el.attr({
+      'data-type': 'math',
+      'data-math': node.source,
+      'data-lang': node.language,
+    }).append(node.source)
+  }
+}
+
 class AdvancedMathEditWithPreview extends substance.Component {
   constructor(...args) {
     super(...args)
@@ -408,6 +591,7 @@ let MathPackage = {
   name: 'math',
   configure: function(config) {
     config.addNode(MathBlock)
+    config.addConverter('html', MathConverter)
     config.addComponent(MathBlock.type, MathEditComponent)
     config.addCommand('insert-math', InsertMathCommand)
     config.addTool('insert-math', substance.Tool, {toolGroup: 'insert'})
@@ -417,90 +601,35 @@ let MathPackage = {
 }
 
 /*
-  Example document
-*/
-let fixture = function(tx) {
-  let body = tx.get('body')
-  tx.create({
-    id: 'h1',
-    type: 'heading',
-    level: 1,
-    content: 'MathEditor Test Page'
-  })
-  body.show('h1')
-  tx.create({
-    id: 'intro',
-    type: 'paragraph',
-    content: [
-      'These things should work: editing a formula using MathQuill (need to click twice to open the editor), editing using the "Full-Source", deleting a formula by pressing the Delete key, Undoing a delete by pressing Ctrl+Z, copying/cutting just the selected math element (and then pasting), copying/cutting multiple lines of text with math and pasting.',
-      // 'It is possible to use 3rd party components, a math editor for instance (which uses MathJax for rendering, MathQuill for WYSIWYG editing, and ACE for advanced text editing).',
-      // 'The editor us wrapped into a separate component which makes it independent from the main word-processor interface.',
-      // 'Here is some inline math that you should eventually be able to select and "upgrade" to real math: x=\\frac{-b\\pm \\sqrt{b^2-4ac}}{2a}',
-    ].join(" ")
-  })
-  body.show('intro')
-  tx.create({
-    id: 's1',
-    type: 'math',
-    language: 'text/tex',
-    source: "x=\\frac{-b\\pm \\sqrt{b^2-4ac}}{2a}",
-  });
-  body.show('s1')
-  tx.create({
-    id: 'p2',
-    type: 'paragraph',
-    content: [
-      "And here is another formula (which does not work in MathQuill)"
-    ].join(" ")
-  })
-  body.show('p2')
-
-  tx.create({
-    id: 's2',
-    type: 'math',
-    language: 'text/tex',
-    source:
-`\\mathbf{A} =
-\\begin{bmatrix}
-a_{11} & a_{12} & \\cdots & a_{1n} \\\\
-a_{21} & a_{22} & \\cdots & a_{2n} \\\\
-\\vdots & \\vdots & \\ddots & \\vdots \\\\
-a_{m1} & a_{m2} & \\cdots & a_{mn}
-\\end{bmatrix} =
-\\left( \\begin{array}{rrrr}
-a_{11} & a_{12} & \\cdots & a_{1n} \\\\
-a_{21} & a_{22} & \\cdots & a_{2n} \\\\
-\\vdots & \\vdots & \\ddots & \\vdots \\\\
-a_{m1} & a_{m2} & \\cdots & a_{mn}
-\\end{array} \\right) =\\left(a_{ij}\\right) \\in \\mathbb{R}^{m \\times n}.
-`,
-  });
-  body.show('s2')
-
-  tx.create({
-    id: 'the-end',
-    type: 'paragraph',
-    content: [
-      "TODO: Support delete key when selected, Make modal pretty, Support MathML, Add/edit/upgrade-by-selecting inline math, Formula cheat-sheet. That's it!"
-    ].join(" ")
-  })
-  body.show('the-end')
-}
-
-/*
   Application
 */
-let cfg = new substance.ProseEditorConfigurator()
+// let cfg = new ProseEditorConfigurator()
+let cfg = new substance.Configurator()
 cfg.import(substance.ProseEditorPackage)
+cfg.import(SimpleWriterPackage)
 cfg.import(MathPackage)
 
 window.onload = function() {
-  let doc = cfg.createArticle(fixture)
+  // let doc = cfg.createArticle(fixture)
+  // let editorSession = new EditorSession(doc, {
+  //   configurator: cfg
+  // })
+  // ProseEditor.mount({
+  //   editorSession: editorSession
+  // }, document.body)
+  // Import article from HTML markup
+  let importer = cfg.createImporter('html')
+  let doc = importer.importDocument(fixture)
+  // This is the data structure manipulated by the editor
+  // let documentSession = new DocumentSession(doc)
   let editorSession = new substance.EditorSession(doc, {
     configurator: cfg
   })
+  // Mount SimpleWriter to the DOM and run it.
   substance.ProseEditor.mount({
-    editorSession: editorSession
+    editorSession: editorSession,
+    // documentSession: documentSession,
+    configurator: cfg
   }, document.body)
 }
 
