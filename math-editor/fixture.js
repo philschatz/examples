@@ -5,14 +5,12 @@ export default `
     <p>
       These things should work:
     </p>
-    <ul>
-      <li>editing a formula using MathQuill (need to click twice to open the editor)</li>
-      <li>editing using the "Full-Source"</li>
-      <li>deleting a formula by pressing the Delete key</li>
-      <li>Undoing a delete by pressing Ctrl+Z</li>
-      <li>copying/cutting just the selected math element (and then pasting)</li>
-      <li>copying/cutting multiple lines of text with math and pasting</li>
-    </ul>
+      <p>editing a formula using MathQuill (need to click twice to open the editor)</p>
+      <p>editing using the "Full-Source"</p>
+      <p>deleting a formula by pressing the Delete key</p>
+      <p>Undoing a delete by pressing Ctrl+Z</p>
+      <p>copying/cutting just the selected math element (and then pasting)</p>
+      <p>copying/cutting multiple lines of text with math and pasting</p>
     <div data-math="x=\\frac{-b\\pm \\sqrt{b^2-4ac}}{2a}"></div>
     <p>And here is another formula (which does not work in MathQuill)</p>
     <div data-math>
@@ -31,12 +29,10 @@ a_{m1} & a_{m2} & \\cdots & a_{mn}
 \\end{array} \\right) =\\left(a_{ij}\\right) \\in \\mathbb{R}^{m \\times n}.
     </div>
     <h1>TODO</h1>
-    <ol>
-      <li>Make modal pretty</li>
-      <li>Support MathML</li>
-      <li>Add/edit/upgrade-by-selecting inline math</li>
-      <li>Formula cheat-sheet</li>
-    </ol>
+      <p>Make modal pretty</p>
+      <p>Support MathML</p>
+      <p>Add/edit/upgrade-by-selecting inline math</p>
+      <p>Formula cheat-sheet</p>
   </body>
 </html>
 `
