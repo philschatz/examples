@@ -11,8 +11,8 @@ class MathBlock extends substance.BlockNode {}
 
 MathBlock.define({
   type: 'math',
-  language: 'text/tex',
-  source: 'text'
+  language: { type: 'string', default: 'text/tex' },
+  source: { type: 'string' },
 })
 
 if (!window.MathJax) {
@@ -134,82 +134,6 @@ class MathQuillComponent extends substance.Component {
 
 }
 
-class AceEditor extends substance.Component {
-  render($$) {
-    let {source} = this.props
-    let el = $$('div').addClass('sc-ace-editor')
-    el.append(
-      $$('div').append(source).ref('source')
-    )
-    return el;
-  }
-
-  // don't rerender because this would destroy ACE
-  shouldRerender(newProps, newState) {
-    return false;
-  }
-
-  didMount() {
-    let {language} = this.props
-    // let editorSession = this.context.editorSession
-    let node = this.props.node;
-    let editor = ace.edit(this.refs.source.getNativeElement())
-    // editor.setTheme("ace/theme/monokai");
-    editor.setOptions({
-      maxLines: Infinity,
-    });
-    editor.$blockScrolling = Infinity;
-    editor.getSession().setMode("ace/mode/" + language)
-    // TODO: don't we need to dispose the editor?
-    // For now we update the model only on blur
-    // Option 1: updating on blur
-    //   pro: one change for the whole code editing session
-    //   con: very implicit, very late, hard to get selection right
-    editor.on('blur', this._updateModelOnBlur.bind(this))
-    editor.on('change', this._updateModelOnBlur.bind(this))
-
-    editor.commands.addCommand({
-      name: 'escape',
-      bindKey: {win: 'Escape', mac: 'Escape'},
-      exec: function(editor) {
-        this.send('escape')
-        editor.blur()
-      }.bind(this),
-      readOnly: true // false if this command should not apply in readOnly mode
-    });
-
-    this.editor = editor
-    // editorSession.onRender('document', this._onModelChange, this, {
-    //   path: [node.id, 'source']
-    // })
-  }
-
-  dispose() {
-    // this.context.editorSession.off(this)
-    this.editor.destroy()
-  }
-
-  _updateModelOnBlur() {
-    let editor = this.editor
-    // let nodeId = this.props.node.id
-    let source = editor.getValue()
-    if (source !== this.props.source) {
-      // this.context.surface.transaction(function(tx) {
-      //   tx.set([nodeId, 'source'], editor.getValue())
-      // }, { source: this, skipSelection: true })
-      this.send('aceUpdated', source)
-    }
-  }
-
-  _onModelChange(change, info) {
-    if (info.source !== this) {
-      this.editor.setValue(this.props.source, -1)
-    }
-  }
-}
-
-AceEditor.fullWidth = true;
-
 var fixture = `
 <html>
   <body>
@@ -217,14 +141,12 @@ var fixture = `
     <p>
       These things should work:
     </p>
-    <ul>
-      <li>editing a formula using MathQuill (need to click twice to open the editor)</li>
-      <li>editing using the "Full-Source"</li>
-      <li>deleting a formula by pressing the Delete key</li>
-      <li>Undoing a delete by pressing Ctrl+Z</li>
-      <li>copying/cutting just the selected math element (and then pasting)</li>
-      <li>copying/cutting multiple lines of text with math and pasting</li>
-    </ul>
+      <p>editing a formula using MathQuill (need to click twice to open the editor)</p>
+      <p>editing using the "Full-Source"</p>
+      <p>deleting a formula by pressing the Delete key</p>
+      <p>Undoing a delete by pressing Ctrl+Z</p>
+      <p>copying/cutting just the selected math element (and then pasting)</p>
+      <p>copying/cutting multiple lines of text with math and pasting</p>
     <div data-math="x=\\frac{-b\\pm \\sqrt{b^2-4ac}}{2a}"></div>
     <p>And here is another formula (which does not work in MathQuill)</p>
     <div data-math>
@@ -243,13 +165,10 @@ a_{m1} & a_{m2} & \\cdots & a_{mn}
 \\end{array} \\right) =\\left(a_{ij}\\right) \\in \\mathbb{R}^{m \\times n}.
     </div>
     <h1>TODO</h1>
-    <ol>
-      <li>Support delete key when selected</li>
-      <li>Make modal pretty</li>
-      <li>Support MathML</li>
-      <li>Add/edit/upgrade-by-selecting inline math</li>
-      <li>Formula cheat-sheet</li>
-    </ol>
+      <p>Make modal pretty</p>
+      <p>Support MathML</p>
+      <p>Add/edit/upgrade-by-selecting inline math</p>
+      <p>Formula cheat-sheet</p>
   </body>
 </html>
 `
@@ -349,6 +268,7 @@ var SimpleWriterPackage = {
     // config.import(LinkPackage, {toolTarget: 'annotations'})
 
     config.import(substance.ListPackage)
+    config.import(substance.ImagePackage)
 
     // custom nodes
     config.import(BodyPackage)
@@ -393,6 +313,105 @@ var MathConverter = {
   }
 }
 
+// import IsolatedNodeComponent from 'substance/packages/isolated-node/IsolatedNodeComponent'
+
+/**
+  Based on substance-texture ContribComponent
+*/
+class MathComponent extends substance.Component {
+  constructor(...args) {
+    super(...args)
+
+    this.handleActions({
+      'closeModal': this._closeModal,
+      // 'xmlSaved': this._closeModal
+    })
+
+    this.props.node.on('properties:changed', this.rerender, this)
+  }
+
+  didMount() {
+    const nativeMathContainer = this.refs.renderedMathNode.getNativeElement()
+    function cb(a,b,c) {
+      console.log('MathJaxDoneRendering', a, b, c)
+    }
+    MathJax.Hub.Queue ["Typeset", MathJax.Hub, nativeMathContainer, cb]
+    // console.log('TODO: Typesetting via MathJax', nativeMathContainer);
+  }
+
+  // similar to substance-examples/code-editor, this makes sure MathJax does not rerender unnecessarily
+  shouldRerender() {
+    return false
+  }
+
+  render($$) {
+    let Modal = this.getComponent('modal')
+    // let IsolatedNodeComponent = this.getComponent('isolated-node')
+
+    // let contrib = getAdapter(this.props.node)
+    let el = $$('div').addClass('sc-math')
+      .append(
+        $$('div').addClass('se-name')
+          .append('Rendering Math $a+b^2$ $$a+b^2$$')
+          .attr({contenteditable: false})
+          .ref('renderedMathNode')
+      ).on('click', this._toggleEditor)
+
+    if (this.state.editMath) {
+      // Conforms to strict markup enforced by texture
+      // for visual editing
+      // let EditorClass
+      // if (contrib.strict) {
+      //   EditorClass = EditContrib
+      // } else {
+      //   EditorClass = EditXML
+      // }
+
+      el.append(
+        $$(Modal, {
+          width: 'medium'
+        }).append(
+          // $$(EditorClass, contrib)
+          $$('div').append('body of the modal')
+        )
+      )
+    }
+    return el
+  }
+
+  _closeModal() {
+    this.setState({
+      editMath: false
+    })
+  }
+
+  _toggleEditor() {
+    this.setState({
+      editMath: true
+    })
+  }
+
+}
+
+// MathComponent.define({
+//   type: 'math',
+//   content: { type: 'string', default: '' }
+// })
+
+// in presence of overlapping annotations will try to render this as one element
+MathComponent.fragmentation = substance.Fragmenter.SHOULD_NOT_SPLIT
+
+/**
+  Command implementation used for creating, expanding and
+  truncating comments.
+
+  Fusion and deletion are disabled as these are handled by EditMathTool.
+*/
+class MathCommand extends substance.AnnotationCommand {
+  canFuse()   { return false }
+  canDelete() { return false }
+}
+
 class AdvancedMathEditWithPreview extends substance.Component {
   constructor(...args) {
     super(...args)
@@ -418,7 +437,7 @@ class AdvancedMathEditWithPreview extends substance.Component {
       // .on('blur', this._updateSource)
       // .on('keyup', this._updateSource)
       // .ref('sourceLatex')
-      $$(AceEditor, {source, language}).ref('hack-to-not-rerender1')
+      $$(AceComponent, {source, language}).ref('hack-to-not-rerender1')
     )
     .append($$(MathJaxRenderComponent, {source, language}).ref('hack-to-not-rerender2'))
 
@@ -571,34 +590,61 @@ class MathEditComponent extends substance.Component {
 
 MathEditComponent.fullWidth = true;
 
-/*
-  Command for math insertion
+// import EditMathTool from './EditMathTool'
+/**
+  Math package that can be imported by SimpleWriter
+
+  Provides a Math node definition, a converter for HTML conversion,
+  commands and tools for creation, and editing of maths.
 */
-class InsertMathCommand extends substance.InsertNodeCommand {
-  createNodeData() {
-    return {
-      type: 'math',
-      language: 'text/tex',
-      content: ''
-    }
+var MathPackage = {
+  name: 'math',
+  configure: function(config, options) {
+
+
+    //     config.addNode(MathBlock)
+    //     config.addConverter('html', MathConverter)
+    config.addComponent(MathBlock.type, MathEditComponent)
+    //     config.addCommand('insert-math', InsertMathCommand)
+    //     config.addTool('insert-math', Tool, {toolGroup: 'insert'})
+    //     config.addIcon('insert-math', { 'fontawesome': 'fa-code' })
+    //     config.addLabel('insert-math', 'Math Formula')
+
+
+    config.addNode(MathBlock)
+    config.addConverter('html', MathConverter)
+
+    // Tool to insert a new math
+    config.addCommand('math', MathCommand, {nodeType: 'math'})
+    config.addTool('math', substance.AnnotationTool, {toolGroup: options.toolTarget || 'annotations'})
+    // Tool to edit an existing math, should be displayed as an overlay
+    config.addCommand('edit-math', substance.EditAnnotationCommand, {nodeType: 'math'})
+    // config.addTool('edit-math', EditMathTool, { toolGroup: 'overlay' })
+
+    // Icons and labels
+    config.addIcon('math', { 'fontawesome': 'fa-superscript'})
+    config.addLabel('math', 'Math')
+
+    config.addComponent(Math.type, MathComponent)
+
   }
 }
 
 /*
   Package defintion for math extension
 */
-let MathPackage = {
-  name: 'math',
-  configure: function(config) {
-    config.addNode(MathBlock)
-    config.addConverter('html', MathConverter)
-    config.addComponent(MathBlock.type, MathEditComponent)
-    config.addCommand('insert-math', InsertMathCommand)
-    config.addTool('insert-math', substance.Tool, {toolGroup: 'insert'})
-    config.addIcon('insert-math', { 'fontawesome': 'fa-code' })
-    config.addLabel('insert-math', 'Math Formula')
-  }
-}
+// let MathPackage = {
+//   name: 'math',
+//   configure: function(config) {
+//     config.addNode(MathBlock)
+//     config.addConverter('html', MathConverter)
+//     config.addComponent(MathBlock.type, MathEditComponent)
+//     config.addCommand('insert-math', InsertMathCommand)
+//     config.addTool('insert-math', Tool, {toolGroup: 'insert'})
+//     config.addIcon('insert-math', { 'fontawesome': 'fa-code' })
+//     config.addLabel('insert-math', 'Math Formula')
+//   }
+// }
 
 /*
   Application
