@@ -1,5 +1,6 @@
 import {Component} from 'substance'
 import MathJaxRenderComponent from './MathJaxRenderComponent'
+import AceComponent from './AceComponent'
 
 export default class AdvancedMathEditWithPreview extends Component {
   constructor(...args) {
