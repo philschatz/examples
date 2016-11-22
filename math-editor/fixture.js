@@ -32,7 +32,6 @@ a_{m1} & a_{m2} & \\cdots & a_{mn}
     </div>
     <h1>TODO</h1>
     <ol>
-      <li>Support delete key when selected</li>
       <li>Make modal pretty</li>
       <li>Support MathML</li>
       <li>Add/edit/upgrade-by-selecting inline math</li>
