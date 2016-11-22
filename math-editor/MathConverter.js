@@ -7,14 +7,16 @@ export default {
     Custom matcher, needed as matching by tagName is not sufficient
   */
   matchElement: function(el) {
-    return el.is('span[data-type="math"]')
+    return el.is('div[data-math]')
   },
 
   /**
     Extract math string from the data-math attribute
   */
   import: function(el, node) {
-    node.content = el.attr('data-math')
+    // node.content = el.attr('data-math') || el.textContent
+    node.source = el.attr('data-math') || el.textContent
+    node.language = el.attr('data-lang') || 'text/tex'
   },
 
   /**
@@ -24,7 +26,8 @@ export default {
   export: function(node, el) {
     el.attr({
       'data-type': 'math',
-      'data-math': node.content
-    }.append(node.content))
+      'data-math': node.source,
+      'data-lang': node.language,
+    }).append(node.source)
   }
 }
