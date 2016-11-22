@@ -1,5 +1,5 @@
 import {
-  Component, ProseEditor, ProseEditorConfigurator, EditorSession,
+  Component, ProseEditor, Configurator, ProseEditorConfigurator, EditorSession, DocumentSession,
   ProseEditorPackage, BlockNode, Tool, InsertNodeCommand
 } from 'substance'
 
@@ -7,6 +7,9 @@ import MathBlock from './MathBlock'
 import MathJaxRenderComponent from './MathJaxRenderComponent'
 import MathQuillComponent from './MathQuillComponent'
 import AceComponent from './AceComponent'
+import fixture from './fixture'
+import SimpleWriterPackage from './SimpleWriterPackage'
+import MathConverter from './MathConverter'
 
 class AdvancedMathEditWithPreview extends Component {
   constructor(...args) {
@@ -206,6 +209,7 @@ let MathPackage = {
   name: 'math',
   configure: function(config) {
     config.addNode(MathBlock)
+    config.addConverter('html', MathConverter)
     config.addComponent(MathBlock.type, MathEditComponent)
     config.addCommand('insert-math', InsertMathCommand)
     config.addTool('insert-math', Tool, {toolGroup: 'insert'})
@@ -215,89 +219,34 @@ let MathPackage = {
 }
 
 /*
-  Example document
-*/
-let fixture = function(tx) {
-  let body = tx.get('body')
-  tx.create({
-    id: 'h1',
-    type: 'heading',
-    level: 1,
-    content: 'MathEditor Test Page'
-  })
-  body.show('h1')
-  tx.create({
-    id: 'intro',
-    type: 'paragraph',
-    content: [
-      'These things should work: editing a formula using MathQuill (need to click twice to open the editor), editing using the "Full-Source", deleting a formula by pressing the Delete key, Undoing a delete by pressing Ctrl+Z, copying/cutting just the selected math element (and then pasting), copying/cutting multiple lines of text with math and pasting.',
-      // 'It is possible to use 3rd party components, a math editor for instance (which uses MathJax for rendering, MathQuill for WYSIWYG editing, and ACE for advanced text editing).',
-      // 'The editor us wrapped into a separate component which makes it independent from the main word-processor interface.',
-      // 'Here is some inline math that you should eventually be able to select and "upgrade" to real math: x=\\frac{-b\\pm \\sqrt{b^2-4ac}}{2a}',
-    ].join(" ")
-  })
-  body.show('intro')
-  tx.create({
-    id: 's1',
-    type: 'math',
-    language: 'text/tex',
-    source: "x=\\frac{-b\\pm \\sqrt{b^2-4ac}}{2a}",
-  });
-  body.show('s1')
-  tx.create({
-    id: 'p2',
-    type: 'paragraph',
-    content: [
-      "And here is another formula (which does not work in MathQuill)"
-    ].join(" ")
-  })
-  body.show('p2')
-
-  tx.create({
-    id: 's2',
-    type: 'math',
-    language: 'text/tex',
-    source:
-`\\mathbf{A} =
-\\begin{bmatrix}
-a_{11} & a_{12} & \\cdots & a_{1n} \\\\
-a_{21} & a_{22} & \\cdots & a_{2n} \\\\
-\\vdots & \\vdots & \\ddots & \\vdots \\\\
-a_{m1} & a_{m2} & \\cdots & a_{mn}
-\\end{bmatrix} =
-\\left( \\begin{array}{rrrr}
-a_{11} & a_{12} & \\cdots & a_{1n} \\\\
-a_{21} & a_{22} & \\cdots & a_{2n} \\\\
-\\vdots & \\vdots & \\ddots & \\vdots \\\\
-a_{m1} & a_{m2} & \\cdots & a_{mn}
-\\end{array} \\right) =\\left(a_{ij}\\right) \\in \\mathbb{R}^{m \\times n}.
-`,
-  });
-  body.show('s2')
-
-  tx.create({
-    id: 'the-end',
-    type: 'paragraph',
-    content: [
-      "TODO: Support delete key when selected, Make modal pretty, Support MathML, Add/edit/upgrade-by-selecting inline math, Formula cheat-sheet. That's it!"
-    ].join(" ")
-  })
-  body.show('the-end')
-}
-
-/*
   Application
 */
-let cfg = new ProseEditorConfigurator()
+// let cfg = new ProseEditorConfigurator()
+let cfg = new Configurator()
 cfg.import(ProseEditorPackage)
+cfg.import(SimpleWriterPackage)
 cfg.import(MathPackage)
 
 window.onload = function() {
-  let doc = cfg.createArticle(fixture)
+  // let doc = cfg.createArticle(fixture)
+  // let editorSession = new EditorSession(doc, {
+  //   configurator: cfg
+  // })
+  // ProseEditor.mount({
+  //   editorSession: editorSession
+  // }, document.body)
+  // Import article from HTML markup
+  let importer = cfg.createImporter('html')
+  let doc = importer.importDocument(fixture)
+  // This is the data structure manipulated by the editor
+  // let documentSession = new DocumentSession(doc)
   let editorSession = new EditorSession(doc, {
     configurator: cfg
   })
+  // Mount SimpleWriter to the DOM and run it.
   ProseEditor.mount({
-    editorSession: editorSession
+    editorSession: editorSession,
+    // documentSession: documentSession,
+    configurator: cfg
   }, document.body)
 }
