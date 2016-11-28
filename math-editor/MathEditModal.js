@@ -12,16 +12,21 @@ export default class MathEditModal extends Component {
     })
   }
 
+  getInitialState() {
+    return {source: this.props.source}
+  }
+
   render($$) {
-    let {source, language} = this.props
+    let {language} = this.props
+    let {source} = this.state
     let Button = this.getComponent('button')
     let el = $$('div')
     el.append($$('div'))
     .append($$('h2').append('Edit the math below (uses MathQuill):'))
-    .append($$(MathQuillComponent, {source}))
+    .append($$(MathQuillComponent, {source}).ref('hack-to-not-rerender1'))
     .append($$('hr'))
     .append($$('h2').append('Or, edit the latex directly'))
-    .append($$(AdvancedMathEditWithPreview, {language, source}))
+    .append($$(AdvancedMathEditWithPreview, {language, source}).ref('hack-to-not-rerender2'))
 
     el.append(
       $$('div').addClass('se-actions').append(
@@ -33,10 +38,14 @@ export default class MathEditModal extends Component {
   }
 
   _sourceUpdated(source) {
-    this.__source__ = source
+    // When syncing MathQuill and the Ace editor (updating their props because another component was editing math)
+    // do not re-fire
+    if (source !== this.state.source) {
+      this.extendState({source: source})
+    }
   }
   _save() {
-    this.send('saveMath', this.__source__)
+    this.send('saveMath', this.state.source)
   }
 
   _cancel() {

@@ -18,6 +18,14 @@ export default class MathQuillComponent extends Component {
     return false;
   }
 
+  didUpdate(oldProps, oldState) {
+    const {source} = this.props
+    // Check so we do not lose focus
+    if (source !== this._mathField.latex()) {
+      this._mathField.latex(source)
+    }
+  }
+
   _updateLatex() {
     this.send('mathQuillUpdated', this._mathField.latex())
   }
