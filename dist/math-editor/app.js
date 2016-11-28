@@ -115,6 +115,14 @@ class MathQuillComponent extends substance.Component {
     return false;
   }
 
+  didUpdate(oldProps, oldState) {
+    const {source} = this.props
+    // Check so we do not lose focus
+    if (source !== this._mathField.latex()) {
+      this._mathField.latex(source)
+    }
+  }
+
   _updateLatex() {
     this.send('mathQuillUpdated', this._mathField.latex())
   }
@@ -149,26 +157,37 @@ class AceEditor extends substance.Component {
     return false;
   }
 
+  didUpdate(oldProps, oldState) {
+    const {source} = this.props
+    // Check so we do not lose focus
+    if (source !== this._editor.getValue()) {
+      this.__hackIgnoreFiringUpdates = true
+      this._editor.setValue(source)
+      this.__hackIgnoreFiringUpdates = false
+    }
+  }
+
+
   didMount() {
     let {language} = this.props
     // let editorSession = this.context.editorSession
     let node = this.props.node;
-    let editor = ace.edit(this.refs.source.getNativeElement())
+    this._editor = ace.edit(this.refs.source.getNativeElement())
     // editor.setTheme("ace/theme/monokai");
-    editor.setOptions({
+    this._editor.setOptions({
       maxLines: Infinity,
     });
-    editor.$blockScrolling = Infinity;
-    editor.getSession().setMode("ace/mode/" + language)
+    this._editor.$blockScrolling = Infinity;
+    this._editor.getSession().setMode("ace/mode/" + language)
     // TODO: don't we need to dispose the editor?
     // For now we update the model only on blur
     // Option 1: updating on blur
     //   pro: one change for the whole code editing session
     //   con: very implicit, very late, hard to get selection right
-    editor.on('blur', this._updateModelOnBlur.bind(this))
-    editor.on('change', this._updateModelOnBlur.bind(this))
+    this._editor.on('blur', this._updateModelOnBlur.bind(this))
+    this._editor.on('change', this._updateModelOnBlur.bind(this))
 
-    editor.commands.addCommand({
+    this._editor.commands.addCommand({
       name: 'escape',
       bindKey: {win: 'Escape', mac: 'Escape'},
       exec: function(editor) {
@@ -178,7 +197,6 @@ class AceEditor extends substance.Component {
       readOnly: true // false if this command should not apply in readOnly mode
     });
 
-    this.editor = editor
     // editorSession.onRender('document', this._onModelChange, this, {
     //   path: [node.id, 'source']
     // })
@@ -186,14 +204,13 @@ class AceEditor extends substance.Component {
 
   dispose() {
     // this.context.editorSession.off(this)
-    this.editor.destroy()
+    this._editor.destroy()
   }
 
   _updateModelOnBlur() {
-    let editor = this.editor
     // let nodeId = this.props.node.id
-    let source = editor.getValue()
-    if (source !== this.props.source) {
+    let source = this._editor.getValue()
+    if (source !== this.props.source && ! this.__hackIgnoreFiringUpdates) {
       // this.context.surface.transaction(function(tx) {
       //   tx.set([nodeId, 'source'], editor.getValue())
       // }, { source: this, skipSelection: true })
@@ -496,23 +513,13 @@ class AdvancedMathEditWithPreview extends substance.Component {
     })
   }
 
-  getInitialState() {
-    return {source: this.props.source}
-  }
-
   render($$) {
     const {language} = this.props
-    const source = this.state.source || this.props.source
+    const source = this.props.source
 
     const el = $$('div')
     .append('Enter Latex Source:')
     .append(
-      // TODO: Use the ACE editor
-      // $$('input')
-      // .attr('value', source)
-      // .on('blur', this._updateSource)
-      // .on('keyup', this._updateSource)
-      // .ref('sourceLatex')
       $$(AceEditor, {source, language}).ref('hack-to-not-rerender1')
     )
     .append($$(MathJaxRenderComponent, {source, language}).ref('hack-to-not-rerender2'))
@@ -520,17 +527,8 @@ class AdvancedMathEditWithPreview extends substance.Component {
     return el
   }
 
-  // _updateSource() {
-  //   const source = this.refs['sourceLatex'].getNativeElement().value
-  //   if (source !== this.state.source) {
-  //     this.extendState({source})
-  //     this.send('mathAdvancedUpdated', source)
-  //   }
-  // }
-
   _aceUpdated(source) {
-    if (source !== this.state.source) {
-      this.extendState({source})
+    if (source !== this.props.source) {
       this.send('mathAdvancedUpdated', source)
     }
   }
@@ -548,16 +546,21 @@ class MathEditModal extends substance.Component {
     })
   }
 
+  getInitialState() {
+    return {source: this.props.source}
+  }
+
   render($$) {
-    let {source, language} = this.props
+    let {language} = this.props
+    let {source} = this.state
     let Button = this.getComponent('button')
     let el = $$('div')
     el.append($$('div'))
     .append($$('h2').append('Edit the math below (uses MathQuill):'))
-    .append($$(MathQuillComponent, {source}))
+    .append($$(MathQuillComponent, {source}).ref('hack-to-not-rerender1'))
     .append($$('hr'))
     .append($$('h2').append('Or, edit the latex directly'))
-    .append($$(AdvancedMathEditWithPreview, {language, source}))
+    .append($$(AdvancedMathEditWithPreview, {language, source}).ref('hack-to-not-rerender2'))
 
     el.append(
       $$('div').addClass('se-actions').append(
@@ -569,10 +572,14 @@ class MathEditModal extends substance.Component {
   }
 
   _sourceUpdated(source) {
-    this.__source__ = source
+    // When syncing MathQuill and the Ace editor (updating their props because another component was editing math)
+    // do not re-fire
+    if (source !== this.state.source) {
+      this.extendState({source: source})
+    }
   }
   _save() {
-    this.send('saveMath', this.__source__)
+    this.send('saveMath', this.state.source)
   }
 
   _cancel() {
