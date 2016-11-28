@@ -119,12 +119,16 @@ class MathQuillComponent extends substance.Component {
     const {source} = this.props
     // Check so we do not lose focus
     if (source !== this._mathField.latex()) {
+      this.__hackIgnoreFiringUpdates = true
       this._mathField.latex(source)
+      this.__hackIgnoreFiringUpdates = false
     }
   }
 
   _updateLatex() {
-    this.send('mathQuillUpdated', this._mathField.latex())
+    if (!this.__hackIgnoreFiringUpdates) {
+      this.send('mathQuillUpdated', this._mathField.latex())
+    }
   }
 
   didMount() {
