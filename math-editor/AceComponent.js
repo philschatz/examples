@@ -15,26 +15,37 @@ export default class AceEditor extends Component {
     return false;
   }
 
+  didUpdate(oldProps, oldState) {
+    const {source} = this.props
+    // Check so we do not lose focus
+    if (source !== this._editor.getValue()) {
+      this.__hackIgnoreFiringUpdates = true
+      this._editor.setValue(source)
+      this.__hackIgnoreFiringUpdates = false
+    }
+  }
+
+
   didMount() {
     let {language} = this.props
     // let editorSession = this.context.editorSession
     let node = this.props.node;
-    let editor = ace.edit(this.refs.source.getNativeElement())
+    this._editor = ace.edit(this.refs.source.getNativeElement())
     // editor.setTheme("ace/theme/monokai");
-    editor.setOptions({
+    this._editor.setOptions({
       maxLines: Infinity,
     });
-    editor.$blockScrolling = Infinity;
-    editor.getSession().setMode("ace/mode/" + language)
+    this._editor.$blockScrolling = Infinity;
+    this._editor.getSession().setMode("ace/mode/" + language)
     // TODO: don't we need to dispose the editor?
     // For now we update the model only on blur
     // Option 1: updating on blur
     //   pro: one change for the whole code editing session
     //   con: very implicit, very late, hard to get selection right
-    editor.on('blur', this._updateModelOnBlur.bind(this))
-    editor.on('change', this._updateModelOnBlur.bind(this))
+    this._editor.on('blur', this._updateModelOnBlur.bind(this))
+    this._editor.on('change', this._updateModelOnBlur.bind(this))
 
-    editor.commands.addCommand({
+    this._editor.commands.addCommand({
       name: 'escape',
       bindKey: {win: 'Escape', mac: 'Escape'},
       exec: function(editor) {
@@ -44,7 +55,6 @@ export default class AceEditor extends Component {
       readOnly: true // false if this command should not apply in readOnly mode
     });
 
-    this.editor = editor
     // editorSession.onRender('document', this._onModelChange, this, {
     //   path: [node.id, 'source']
     // })
@@ -52,14 +62,13 @@ export default class AceEditor extends Component {
 
   dispose() {
     // this.context.editorSession.off(this)
-    this.editor.destroy()
+    this._editor.destroy()
   }
 
   _updateModelOnBlur() {
-    let editor = this.editor
     // let nodeId = this.props.node.id
-    let source = editor.getValue()
-    if (source !== this.props.source) {
+    let source = this._editor.getValue()
+    if (source !== this.props.source && ! this.__hackIgnoreFiringUpdates) {
       // this.context.surface.transaction(function(tx) {
       //   tx.set([nodeId, 'source'], editor.getValue())
       // }, { source: this, skipSelection: true })
